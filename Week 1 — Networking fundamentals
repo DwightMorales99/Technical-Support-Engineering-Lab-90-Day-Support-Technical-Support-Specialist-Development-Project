@@ -1,0 +1,160 @@
+Study Network+ topics:
+
+The OSI Model
+* The OSI (Open Systems Interconnection) model is a conceptual framework that breaks network communication into 7 layers. It's more theoretical than the 4-layer TCP/IP model you've already seen, but it's useful for troubleshooting and understanding exactly where in the process something is happening.
+* The 7 Layers (top to bottom)
+#	Layer	Purpose	Examples
+7	Application	Interface for user-facing services	HTTP, FTP, SMTP, DNS
+6	Presentation	Formats/translates/encrypts data	SSL/TLS, JPEG, ASCII
+5	Session	Manages connections/sessions between devices	NetBIOS, RPC
+4	Transport	End-to-end delivery, reliability	TCP, UDP
+3	Network	Logical addressing, routing	IP, ICMP, routers
+2	Data Link	Physical addressing, local delivery	MAC addresses, Ethernet, switches
+1	Physical	Raw bit transmission	Cables, radio signals, hubs
+* Layer-by-Layer Breakdown
+* 7. Application
+* Where the user actually interacts with network services
+* Not the application itself (like your browser), but the protocols it uses to communicate (HTTP, FTP, SMTP)
+* 6. Presentation
+* Translates data between the application and the network format
+* Handles encryption/decryption (TLS), compression, and character encoding (ASCII, Unicode)
+* Ensures data from the sender is readable by the receiver
+* 5. Session
+* Opens, manages, and closes communication sessions between two devices
+* Keeps track of whose "turn" it is to send data, handles reconnection if a session drops
+* Less visible in everyday troubleshooting — often folded into the application layer in practice
+* 4. Transport
+* This is where TCP and UDP live
+* Handles end-to-end communication, breaking data into segments, and (for TCP) ensuring reliable, ordered delivery
+* Introduces the concept of ports to distinguish between different applications/services
+* 3. Network
+* This is where IP lives
+* Handles logical addressing (IP addresses) and routing — figuring out the best path across multiple networks
+* Routers operate here
+* 2. Data Link
+* Handles physical addressing (MAC addresses) and delivery within a single local network segment
+* Switches operate here
+* Splits into two sub-layers in technical contexts: LLC (Logical Link Control) and MAC (Media Access Control)
+* 1. Physical
+* The actual physical medium: cables, radio waves, voltage, light pulses
+* Hubs and physical cabling operate here — this layer doesn't understand data, just raw bits (1s and 0s)
+
+IP (Internet Protocol)
+* Handles addressing and routing
+* Gives every device a unique IP address (e.g., 192.168.1.1 for IPv4, or a longer hex string for IPv6)
+* Breaks data into packets and figures out how to route them from source to destination across networks
+* Doesn't guarantee delivery — it's "best effort"
+
+TCP (Transmission Control Protocol)
+* Sits on top of IP and adds reliability
+* Establishes a connection between two devices (the "three-way handshake": SYN, SYN-ACK, ACK)
+* Ensures packets arrive in order, retransmits lost packets, and checks for errors
+* Used when accuracy matters more than speed — web pages, email, file transfers
+The Layer Model (simplified 4-layer version)
+Layer	Purpose	Examples
+Application	User-facing protocols	HTTP, FTP, SMTP, DNS
+Transport	End-to-end communication	TCP, UDP
+Internet	Routing between networks	IP, ICMP
+Link	Physical/local network access	Ethernet, Wi-Fi
+How It Works in Practice
+When you load a webpage:
+1. Your browser uses HTTP (application layer) to request a page
+2. TCP breaks the request into packets and manages the connection
+3. IP addresses each packet and routes it toward the destination
+4. The Link layer physically transmits the data (Wi-Fi signal, Ethernet cable, etc.)
+5. At the destination, the process reverses to reassemble the data
+
+
+IPv4
+* Format: 32-bit address, written as four decimal numbers separated by dots (e.g., 192.168.1.1)
+* Total addresses: ~4.3 billion (2³²)
+* Problem: The internet outgrew this decades ago — there simply aren't enough unique addresses for every device (phones, laptops, IoT devices, servers, etc.)
+* Workarounds: NAT (Network Address Translation) lets many devices share one public IP address, which is why IPv4 has survived this long despite the shortage
+
+IPv6
+* Format: 128-bit address, written as eight groups of hexadecimal digits separated by colons (e.g., 2001:0db8:85a3:0000:0000:8a2e:0370:7334)
+* Total addresses: ~340 undecillion (2¹²⁸) — effectively limitless for the foreseeable future
+* Shorthand: Consecutive zero groups can be compressed with :: (once per address), so the example above can shorten to 2001:db8:85a3::8a2e:370:7334
+Key Differences
+	IPv4	IPv6
+Address size	32-bit	128-bit
+Address space	~4.3 billion	~340 undecillion
+Format	Dotted decimal	Hexadecimal, colon-separated
+NAT	Commonly required	Generally unnecessary
+Header	More complex, variable options	Simplified, fixed-size header
+Built-in security	Not native (IPsec optional)	IPsec support was originally mandated, now optional in practice
+Adoption	Still dominant globally	Growing steadily, but not universal
+
+MAC Addresses
+* A MAC (Media Access Control) address is a hardware identifier burned into a network interface card (NIC) by the manufacturer
+* Format: 48-bit, written as six pairs of hex digits (e.g., 00:1A:2B:3C:4D:5E)
+* Operates at the Link layer — used for communication within a local network segment (not across the internet)
+* Unlike IP addresses, MAC addresses generally don't change and aren't tied to network location (though "MAC spoofing" is possible)
+* First half often identifies the manufacturer (OUI — Organizationally Unique Identifier)
+
+ARP (Address Resolution Protocol)
+* Bridges the gap between IP addresses (Layer 3) and MAC addresses (Layer 2)
+* When a device wants to send data to an IP on its local network, it needs the recipient's MAC address
+* Process: device broadcasts "Who has 192.168.1.5? Tell 192.168.1.10" → the owner replies with its MAC address
+* The result gets cached in an ARP table temporarily, so this doesn't need to happen on every packet
+* ARP spoofing/poisoning is a common attack where a malicious device sends fake ARP replies to intercept traffic
+
+DNS (Domain Name System)
+* Translates human-readable domain names (example.com) into IP addresses (93.184.216.34) — essentially the internet's phone book
+* Hierarchical system: Root servers → Top-Level Domain (TLD) servers (.com, .org) → Authoritative name servers for the specific domain
+* Common record types:
+    * A — maps a name to an IPv4 address
+    * AAAA — maps a name to an IPv6 address
+    * CNAME — alias pointing to another domain name
+    * MX — mail server for the domain
+    * TXT — arbitrary text (often used for verification, SPF/DKIM)
+* Uses UDP port 53 typically (falls back to TCP for larger responses, like zone transfers)
+* Results are cached locally and at ISP resolvers to speed up repeat lookups (TTL controls how long)
+
+DHCP (Dynamic Host Configuration Protocol)
+* Automatically assigns IP addresses (and other config) to devices joining a network, so you don't have to configure everything manually
+* The DORA process:
+    1. Discover — client broadcasts looking for a DHCP server
+    2. Offer — server offers an available IP address
+    3. Request — client requests that specific offer
+    4. Acknowledge — server confirms and leases the address
+* Also hands out: subnet mask, default gateway, DNS server addresses
+* Addresses are leased for a set time and must be renewed
+
+Default Gateways
+* The device (usually a router) that traffic gets sent to when the destination is outside the local network
+* Every device on a network is configured with a gateway IP (e.g., 192.168.1.1)
+* If your device doesn't know how to reach a destination directly, it hands the packet to the gateway, which figures out the next hop
+* Misconfigured gateway = device can talk to local devices but can't reach the internet
+
+NAT (Network Address Translation)
+* Translates private IP addresses (used inside a local network) into a single public IP address (used on the internet), and vice versa
+* Solves two problems: conserves scarce IPv4 addresses, and adds a layer of obscurity/security (internal devices aren't directly addressable from outside)
+* Common private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+* Most home/office routers do this automatically — your laptop has a private IP, but the whole network shares one public IP to the outside world
+* Port Address Translation (PAT), often just called NAT, tracks which internal device owns which connection by mapping port numbers
+
+TCP vs UDP
+	TCP	UDP
+Connection	Connection-oriented (handshake required)	Connectionless
+Reliability	Guaranteed delivery, ordered, retransmits lost packets	No guarantee — packets can be lost or arrive out of order
+Speed/Overhead	Slower, more overhead	Faster, minimal overhead
+Use cases	Web browsing, email, file transfer, anything needing accuracy	Streaming, gaming, VoIP, DNS lookups — speed over perfection
+
+
+Common Ports
+Port	Protocol	Use
+20/21	FTP	File transfer
+22	SSH	Secure remote login
+23	Telnet	Unencrypted remote login
+25	SMTP	Sending email
+53	DNS	Domain name lookups
+67/68	DHCP	IP address assignment
+80	HTTP	Unencrypted web traffic
+110	POP3	Retrieving email
+143	IMAP	Retrieving email (syncs across devices)
+443	HTTPS	Encrypted web traffic
+3306	MySQL	Database connections
+3389	RDP	Remote desktop
+
+
