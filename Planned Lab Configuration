@@ -1,15 +1,17 @@
 🏗️ Lab Architecture
-                         VirtualBox
-                             │
-                ┌────────────┴────────────┐
-                │                         │
-          Kali Linux                  Ubuntu Linux
-          ATTACKER /                 SERVER / CLIENT
-          TEST SYSTEM                WEB APPLICATION
-                │                         │
-                └───────── Network ───────┘
-Planned Lab Configuration
-System	Role	Purpose
-Kali Linux	Testing / troubleshooting workstation	Network testing, diagnostics, security testing
-Ubuntu Linux	Server / application	Web services, logs, networking, troubleshooting
-VirtualBox	Hypervisor	Virtual lab infrastructure
+                       
+
+                                            VirtualBox
+## Topology
+
+```
+[Kali]  ---  Network A (192.168.56.0/24)  ---  [pfSense]  ---  Network B (192.168.57.0/24)  ---  [Ubuntu]
+192.168.56.10                                .56.1 | .57.1                                  192.168.57.10
+```
+
+| Device | Role | Network | IP Address |
+|---|---|---|---|
+| pfSense | Router / Firewall | Network A (LAN) + Network B (WAN) | 192.168.56.1 / 192.168.57.1 |
+| Kali | Client machine | Network A | 192.168.56.10 |
+| Ubuntu | Server machine | Network B | 192.168.57.10 |
+
