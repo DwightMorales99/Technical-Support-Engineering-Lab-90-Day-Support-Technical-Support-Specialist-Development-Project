@@ -1,0 +1,130 @@
+# Home Network Lab — pfSense Router/Firewall with Segmented Kali & Ubuntu VMs
+
+A self-hosted virtual lab for practicing real-world IT support and networking troubleshooting scenarios, built entirely in VirtualBox on a single host machine.
+
+## Overview
+
+This lab simulates a small "corporate network" topology: two isolated subnets bridged by a pfSense firewall/router, with a Kali Linux VM and an Ubuntu Server VM sitting on opposite sides. Traffic between the two VMs can only pass through pfSense, allowing realistic practice of routing, firewall rule, DNS, DHCP, and service-level troubleshooting.
+
+## Topology
+
+```
+[Kali]  ---  Network A (192.168.56.0/24)  ---  [pfSense]  ---  Network B (192.168.57.0/24)  ---  [Ubuntu]
+192.168.56.10                                .56.1 | .57.1                                  192.168.57.10
+```
+
+| Device | Role | Network | IP Address |
+|---|---|---|---|
+| pfSense | Router / Firewall | Network A (LAN) + Network B (WAN) | 192.168.56.1 / 192.168.57.1 |
+| Kali | Client machine | Network A | 192.168.56.10 |
+| Ubuntu | Server machine | Network B | 192.168.57.10 |
+
+Only pfSense straddles both networks. Kali and Ubuntu are single-homed, forcing all cross-network traffic to route through pfSense.
+
+## Software Used
+
+- **VirtualBox** — hypervisor for all three VMs
+- **Kali Linux** — client-side troubleshooting and testing
+- **Ubuntu Server** — target/server-side machine
+- **pfSense CE 2.7.2** (classic offline ISO installer) — open-source router/firewall, FreeBSD-based
+- **Wireshark** — packet capture on Kali, for observing traffic live
+
+## Build Steps
+
+### 1. Network foundation
+
+Two separate **Host-only Networks** were created in VirtualBox (Tools → Host Network Manager):
+
+| Network | Subnet |
+|---|---|
+| Network A | 192.168.56.0/24 |
+| Network B | 192.168.57.0/24 |
+
+
+### 2. pfSense VM creation
+
+- **Base Memory:** 2048 MB
+- **CPUs:** 2
+- **Disk:** 20 GB, VDI, dynamically allocated
+
+
+### 3. Adapter assignment
+
+| VM | Adapter 1 | Adapter 2 |
+|---|---|---|
+| pfSense | Network A (LAN) | Network B (WAN) |
+| Kali | Network A | *(disabled)* |
+| Ubuntu | Network B | *(disabled)* |
+
+
+### 4. pfSense installation (classic offline CE ISO)
+
+Downloaded `pfSense-CE-2.7.2-RELEASE-amd64.iso.gz` directly from Netgate's file mirror and installed fully offline — no internet dependency.
+
+**Disk partitioning:**
+- Scheme: **GPT**
+- Layout: **Auto (UFS)** — chosen over ZFS since the VM has less than 8GB RAM
+
+
+Resulting layout on the 20GB disk:
+- `ada0p1` — 512 KB, freebsd-boot
+- `ada0p2` — 19 GB, freebsd-ufs (`/`)
+- `ada0p3` — 1.0 GB, freebsd-swap
+
+
+**Interface assignment:**
+- LAN: em1 → `192.168.56.1/24`, DHCPD range `192.168.56.100`–`192.168.56.199`
+- WAN: em0 → `192.168.57.1/24`
+
+### 5. Static IP configuration (Kali & Ubuntu)
+
+**Kali:**
+```bash
+sudo ip addr add 192.168.56.10/24 dev eth0
+sudo ip link set eth0 up
+sudo ip route add default via 192.168.56.1
+```
+
+**Ubuntu:**
+```bash
+sudo ip addr add 192.168.57.10/24 dev enp0s8
+sudo ip link set enp0s8 up
+sudo ip route add default via 192.168.57.1
+```
+
+### 6. Wireshark
+
+Installed on Kali to observe live traffic (ARP, ICMP, TCP handshakes, DNS queries) during connectivity tests and future fault-injection exercises.
+
+```bash
+sudo apt update
+sudo apt install wireshark
+sudo usermod -aG wireshark $USER
+```
+
+## Key Takeaway
+
+The default **Netgate Installer** requires live internet access mid-install to reach Netgate's servers, which creates unnecessary failure points in an isolated lab environment. The **classic offline pfSense CE ISO** (available from Netgate's file mirror) installs with zero internet dependency and is the more reliable choice for air-gapped lab builds.
+
+## Planned Exercises
+
+- [ ] Baseline connectivity test (Kali ↔ Ubuntu through pfSense) + snapshot as "known good"
+- [ ] Break WAN firewall rule (remove ICMP allow) — observe silent drop vs. explicit reject in Wireshark
+- [ ] Break routing (delete default route on Ubuntu) — diagnose via `ip route`, `traceroute`
+- [ ] Break DNS (point Ubuntu's `/etc/resolv.conf` at an unreachable server) — isolate DNS failure from general connectivity failure
+- [ ] Install a web server (nginx/apache2) on Ubuntu — practice port/service-level troubleshooting with `nc`, `curl`
+- [ ] Add firewall rules in pfSense to selectively allow/deny traffic between Network A and Network B
+
+## Reference: Troubleshooting Command Cheat Sheet
+
+| Step | Command | Layer Tested |
+|---|---|---|
+| 1 | `ip addr` | Interface/IP assignment |
+| 2 | `ip route` | Routing / default gateway |
+| 3 | `ping <target>` | L3 reachability |
+| 4 | `nslookup` / `dig` | DNS resolution |
+| 5 | `nc -vz <target> <port>` | L4 port availability |
+| 6 | `curl -I http://<target>` | L7 service response |
+
+---
+
